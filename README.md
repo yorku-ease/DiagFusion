@@ -1,10 +1,35 @@
-# DiagFusion
-Running:
+# Getting Started
+
+## Environment
+Python 3.7.13, PyTorch 1.10.0, scikit-learn 1.0.2, fastText 0.9.2, and DGL 0.9.2 are suggested.
+
+## Dataset
+|Dataset|Data modal|
+|:---:|:---:|
+|GAIA|Trace|
+| |Log|
+| |Metric
+
+## Demo
+We provied a demo. Please run:
 ```
 python main.py --config gaia_config.yaml
 ```
 
-# Overview
+## Parameter Description in the Demo
+### fastText \& Instance Embedding
+* `vector_dim`: The dimension of event embedding vectors.
+* `sample_count`: The number of samples per type after data augmentation.
+* `edit_count`: The number of events modified per sample during data augmentation.
+* `minCount`: The minimum number of occurrences of the event (events that occur less than this number are ignored).
+### DGL
+* `epoch`: Training rounds.
+* `batch_size`: The number of samples contained in a batch of data.
+* `win_size`: The length of the judgment window for ending training early.
+* `win_threshole`: The thresh for ending training early.
+* `lr`: The learning rate.
+
+## Overview
 * config: Configuration files.
     * <demo_train160.csv> Valid fault labels for GAIA dataset.
     * <gaia_config.yaml> Configuration of GAIA dataset.
