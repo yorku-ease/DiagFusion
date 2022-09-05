@@ -25,7 +25,6 @@ fasttext:
   vector_dim: 100
   sample_count: 1000
   edit_count: 1
-  train_size: 772
   da_method: 'w2v'
   minCount: 1
   epoch: 5
