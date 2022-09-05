@@ -6,7 +6,7 @@ Python 3.7.13, PyTorch 1.10.0, scikit-learn 1.0.2, fastText 0.9.2, and DGL 0.9.2
 ## Dataset
 D1: https://github.com/CloudWise-OpenSource/GAIA-DataSet
 
-D1 contains two datasets: MicroSS and Companion Data. We use MicroSS.
+D1 contains two datasets: MicroSS and Companion Data. We use MicroSS, for it provides trace, log, and metric at the same time.
 
 ## Demo
 We provide a demo. Please run:
