@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class GCNClassifier(nn.Module):
     """
-    两层GCN+平均池化+线性分类器
+    两层GCN+最大池化+线性分类器
     """
     def __init__(self, in_dim, hidden_dim, n_classes):
         super(GCNClassifier, self).__init__()
@@ -60,7 +60,7 @@ class RGCNMSL(nn.Module):
 
 class RGCNClassifier(nn.Module):
     """
-    两层RGCN+平均池化+线性分类器
+    两层RGCN+最大池化+线性分类器
     """
     def __init__(self, in_dim, hidden_dim, n_classes, etype):
         super(RGCNClassifier, self).__init__()
@@ -97,7 +97,7 @@ class RGCNClassifier(nn.Module):
 
 class RGCNv2Classifier(nn.Module):
     """
-    两层RGCN+平均池化+线性分类器
+    两层RGCN+最大池化+线性分类器
     """
     def __init__(self, in_dim, hidden_dim, n_classes, etype):
         super(RGCNv2Classifier, self).__init__()
@@ -158,7 +158,7 @@ class GATClassifier(nn.Module):
 
 class SAGEClassifier(nn.Module):
     """
-    两层SAGEConv+平均池化+线性分类器
+    两层SAGEConv+最大池化+线性分类器
     """
     def __init__(self, in_dim, hidden_dim, n_classes):
         super(SAGEClassifier, self).__init__()
@@ -176,7 +176,7 @@ class SAGEClassifier(nn.Module):
     
 class TAGClassifier(nn.Module):
     """
-    两层TAGConv+平均池化+线性分类器
+    两层TAGConv+最大池化+线性分类器
     """
     def __init__(self, in_dim, hidden_dim, n_classes):
         super(TAGClassifier, self).__init__()

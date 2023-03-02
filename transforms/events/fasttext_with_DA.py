@@ -12,8 +12,6 @@ class FastTextLab:
     def __init__(self, config, cases, split=True):
         self.config = config
         self.cases = cases
-        self.train_size = config['train_size']
-#         self.nodes = ['IG01', 'IG02', 'MG01', 'MG02', 'Mysql01', 'Mysql02', 'Redis01', 'Redis02', 'Tomcat01', 'Tomcat02', 'Tomcat03', 'Tomcat04', 'apache01', 'apache02', 'dockerA1', 'dockerA2', 'dockerB1', 'dockerB2']
         if self.config['supervised']:
             self.method = fasttext.train_supervised
         else:
@@ -22,7 +20,7 @@ class FastTextLab:
         self.anomaly_types = np.append('[normal]', cases['anomaly_type'].unique())
         self.anomaly_type_labels = dict(zip(self.anomaly_types, range(len(self.anomaly_types))))
         self.node_labels = dict(zip(self.nodes, range(len(self.nodes))))
-        # print(self.anomaly_type_labels)
+        print(self.anomaly_type_labels)
         self.train_data, self.test_data = self.prepare_data()
 
     
@@ -108,7 +106,6 @@ class FastTextLab:
             for case_id in keys:
                 case_id = case_id if case_id in data.keys() else str(case_id)
                 for node_info in data[case_id]:
-#                     print(data[case_id])
                     text = data[case_id][node_info]
                     if isinstance(text, str):
                         text = text.replace('(', '').replace(')', '')

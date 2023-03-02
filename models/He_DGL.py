@@ -312,6 +312,8 @@ class UnircaLab():
             self.topoinfo = {0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [6, 7], 4: [8, 9]}
         elif config['dataset'] == '21aiops':
             self.topoinfo = {0: [0, 1], 1: [2, 3], 2: [4, 5], 3: [6, 7], 4: [8, 9, 10, 11], 5: [12, 13], 6: []}
+        elif config['dataset'] == '20aiops':
+            self.topoinfo = {0: [0, 1], 1: list(range(2, 10)), 2: list(range(10, 14))}
         else:
             raise Exception('Unknow dataset')
 
@@ -325,7 +327,7 @@ class UnircaLab():
         df = pd.DataFrame(data, columns=['top_k', 'accuracy'])
         df.to_csv(save_path, index=False)
     
-    def train(self, dataset):
+    def train(self, dataset, key):
         # def hook(module, input, output):
         #     features.append(output)
         #     return None
@@ -339,8 +341,9 @@ class UnircaLab():
 
         in_dim = dataset.graphs[0].ndata['attr'].shape[1]
 #         out_dim = len(set([i.item() for i in dataset.labels]))
-        out_dim = self.config['N_S']
-        hid_dim = (in_dim + out_dim) * 2 // 3
+        out_dim = self.config[key]
+        # hid_dim = (in_dim + out_dim) * 2 // 3
+        hid_dim = int(np.sqrt(in_dim*out_dim))
         if self.config['heterogeneous']:
             etype = U.load_info(os.path.join(self.config['save_dir'], 'edge_types.pkl'))
             model = RGCNClassifier(in_dim, hid_dim, out_dim, etype).to(device)  # @ 异质图
@@ -683,7 +686,7 @@ class UnircaLab():
             pickle.dump(test_embeds, f)
         return
     
-    def test_cls(self, model, train_dataset, test_dataset, classifier, task): # RandomForestClassifier
+    def test_cls(self, model, train_dataset, test_dataset, classifier, task):
         model.eval()
         trainloader = DataLoader(train_dataset, batch_size=len(train_dataset) + 10, collate_fn=self.collate)
         testloader = DataLoader(test_dataset, batch_size=len(test_dataset) + 10, collate_fn=self.collate)
@@ -704,7 +707,8 @@ class UnircaLab():
                     ] for i in range(len(output))
                 ]
             if task == 'instance':
-                ser_res = pd.DataFrame(np.append(preds, labels, axis=1), columns=['Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'GroundTruth'])
+                ser_res = pd.DataFrame(np.append(preds, labels, axis=1), columns=
+                                       np.append([f'Top{i}' for i in range(1, len(preds[0])+1)], 'GroundTruth'))
                 self.test_instance_local(ser_res, max_num=2)
             elif task == 'anomaly_type':
                 preds = np.array(preds)
@@ -729,37 +733,38 @@ class UnircaLab():
             batched_graph = batched_graph.to(device)
             labels = labels.to(device)
             output = model(batched_graph, batched_graph.ndata['attr'].float())
+            k = 5 if output.shape[-1] >= 5 else output.shape[-1]
             if task == 'instance':
-                _, indices = torch.topk(output, k=5, dim=1, largest=True, sorted=True)  
+                _, indices = torch.topk(output, k=k, dim=1, largest=True, sorted=True)  
                 out_dir = os.path.join(self.config['save_dir'], 'preds')
                 if not os.path.exists(out_dir):
                     os.makedirs(out_dir)
                 y_pred = indices.detach().numpy()
                 y_true = labels.detach().numpy().reshape(-1, 1)
                 ser_res = pd.DataFrame(np.append(y_pred, y_true, axis=1), 
-                                       columns=['Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'GroundTruth'])
+                                       columns=np.append([f'Top{i}' for i in range(1, len(y_pred[0])+1)], 'GroundTruth'))
                 
                 # 定位到实例级别
                 accs, ins_res = self.test_instance_local(ser_res, max_num=2)
                 ins_res.to_csv(f'{out_dir}/multitask_seed{seed}_{out_file}')
                 columns = ['A@1', 'A@2', 'A@3', 'A@4', 'A@5']
             elif task == 'anomaly_type':
-                _, indices = torch.topk(output, k=5, dim=1, largest=True, sorted=True)  
+                _, indices = torch.topk(output, k=k, dim=1, largest=True, sorted=True)  
                 out_dir = os.path.join(self.config['save_dir'], 'preds')
                 if not os.path.exists(out_dir):
                     os.makedirs(out_dir)
                 y_pred = indices.detach().numpy()
                 y_true = labels.detach().numpy().reshape(-1, 1)
-                pre = precision_score(y_true, y_pred[:, 0], average='weighted')
-                rec = recall_score(y_true, y_pred[:, 0], average='weighted')
-                f1 = f1_score(y_true, y_pred[:, 0], average='weighted')
+                pre = precision_score(y_pred[:, 0], y_true, average='weighted')
+                rec = recall_score(y_pred[:, 0], y_true, average='weighted')
+                f1 = f1_score(y_pred[:, 0], y_true, average='weighted')
                 print('Weighted precision', pre)
                 print('Weighted recall', rec)
                 print('Weighted f1-score', f1)
                 test_cases = self.demos[self.demos['data_type']=='test']
                 pd.DataFrame(np.append(
-                    y_pred, y_true, axis=1), columns=[
-                                           'Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'GroundTruth'], index=test_cases.index).to_csv(
+                    y_pred[:, 0].reshape(-1, 1), y_true, axis=1), columns=[
+                                           'Pred', 'GroundTruth'], index=test_cases.index).to_csv(
                                                f'{out_dir}/multitask_seed{seed}_{out_file}')
                 columns = ['Precision', 'Recall', 'F1-Score']
                 accs = np.array([pre, rec, f1])
@@ -840,7 +845,8 @@ class UnircaLab():
                     y_pred = indices_ts.detach().numpy()
                     y_true = labels_ts.detach().numpy().reshape(-1, 1)
                     # pd.DataFrame(np.append(y_pred, y_true, axis=1), columns=['Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'GroundTruth']).to_csv(f'{out_dir}/multitask_seed{seed}_{out_file}')
-                    ser_res = pd.DataFrame(np.append(y_pred, y_true, axis=1), columns=['Top1', 'Top2', 'Top3', 'Top4', 'Top5', 'GroundTruth'])
+                    ser_res = pd.DataFrame(np.append(y_pred, y_true, axis=1), columns=
+                                           np.append([f'Top{i}' for i in range(1, len(y_pred[0])+1)], 'GroundTruth'))
                     # 定位到实例级别
                     print('instance')
                     _, ins_res = self.test_instance_local(ser_res, 2)
@@ -892,7 +898,7 @@ class UnircaLab():
                 num_dict[self.ins_dict[pair[0]]] = len(info[index][pair].split())
             s_pred = s_preds.loc[i]
             ins_pred = []
-            for col in ['Top1', 'Top2', 'Top3', 'Top4', 'Top5']:
+            for col in list(s_preds.columns)[: -1]:
                 temp = sorted([(ins_id, num_dict[ins_id]) for ins_id in self.topoinfo[s_pred[col]]],
                               key=lambda x: x[-1], reverse=True)
                 # print(self.topoinfo[s_pred[col]], temp)
@@ -979,19 +985,20 @@ class UnircaLab():
         print('train starts at', s)
         
         # 分别训练模型
-        # service_model = self.train(UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
-        #                                          os.path.join(save_dir, 'train_ys_service.pkl'),
-        #                                          os.path.join(save_dir, 'topology.pkl'),
-        #                                          aug=self.config['aug'],
-        #                                          aug_size=self.config['aug_size'],
-        #                                          shuffle=True))
+#         service_model = self.train(UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
+#                                                  os.path.join(save_dir, 'train_ys_service.pkl'),
+#                                                  os.path.join(save_dir, 'topology.pkl'),
+#                                                  aug=self.config['aug'],
+#                                                  aug_size=self.config['aug_size'],
+#                                                  shuffle=True), 'N_S')
                                                  
-        # anomaly_type_model = self.train(UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
-        #                                               os.path.join(save_dir, 'train_ys_anomaly_type.pkl'),
-        #                                               os.path.join(save_dir, 'topology.pkl'),
-        #                                               aug=self.config['aug'],
-        #                                               aug_size=self.config['aug_size'],
-        #                                               shuffle=True))
+#         anomaly_type_model = self.train(UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
+#                                                       os.path.join(save_dir, 'train_ys_anomaly_type.pkl'),
+#                                                       os.path.join(save_dir, 'topology.pkl'),
+#                                                       aug=self.config['aug'],
+#                                                       aug_size=self.config['aug_size'],
+#                                                       shuffle=True), 'N_A')
+
 #         trans_model = self.trans_train(UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
 #                                                       os.path.join(save_dir, 'train_ys_anomaly_type.pkl'),
 #                                                       os.path.join(save_dir, 'topology.pkl'),
@@ -1046,54 +1053,55 @@ class UnircaLab():
         # 测试并分析准确率
         s = time.time()
         print('test starts at', s)
-        # print('[Training respectively]')
-        # print('instance')
+#         print('[Training respectively]')
+#         print('instance')
         
 
-        # _, _ = self.testv2(service_model,
-        #                                UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'),
-        #                                              os.path.join(save_dir, 'test_ys_service.pkl'),
-        #                                              os.path.join(save_dir, 'topology.pkl')),
-        #                                'instance',
-        #                                'service_pred.csv',
-        #                                'service_acc.csv')
+#         _, _ = self.testv2(service_model,
+#                                        UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'),
+#                                                      os.path.join(save_dir, 'test_ys_service.pkl'),
+#                                                      os.path.join(save_dir, 'topology.pkl')),
+#                                        'instance',
+#                                        'service_pred.csv',
+#                                        'service_acc.csv')
 
-        # print('anomaly_type')
-        # _, _ = self.testv2(anomaly_type_model,
-        #                                UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'),
-        #                                              os.path.join(save_dir, 'test_ys_anomaly_type.pkl'),
-        #                                              os.path.join(save_dir, 'topology.pkl')),
-        #                                'anomaly_type',
-        #                                'anomaly_pred.csv',
-        #                                'anomaly_type_acc.csv')
+#         print('anomaly_type')
+#         _, _ = self.testv2(anomaly_type_model,
+#                                        UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'),
+#                                                      os.path.join(save_dir, 'test_ys_anomaly_type.pkl'),
+#                                                      os.path.join(save_dir, 'topology.pkl')),
+#                                        'anomaly_type',
+#                                        'anomaly_pred.csv',
+#                                        'anomaly_type_acc.csv')
+
 #         print('service + anomaly_type:')
 #         self.cross_evaluate(s_output, s_labels, a_output, a_labels, 'anomaly_type_service_acc.csv')
-        print('[traditional classifier]')
-        print('instance')
-        self.test_cls(model_ts, UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
-                                                 os.path.join(save_dir, 'train_ys_service.pkl'),
-                                                 os.path.join(save_dir, 'topology.pkl'),
-                                                 aug=self.config['aug'],
-                                                 aug_size=self.config['aug_size'],
-                                                 shuffle=True), UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'), 
-                                                 os.path.join(save_dir, 'test_ys_service.pkl'), 
-                                                 os.path.join(save_dir, 'topology.pkl')), 
-                                                 RandomForestClassifier(random_state=0),
-                                                 'instance')
+        # print('[traditional classifier]')
+        # print('instance')
+        # self.test_cls(model_ts, UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
+        #                                          os.path.join(save_dir, 'train_ys_service.pkl'),
+        #                                          os.path.join(save_dir, 'topology.pkl'),
+        #                                          aug=self.config['aug'],
+        #                                          aug_size=self.config['aug_size'],
+        #                                          shuffle=True), UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'), 
+        #                                          os.path.join(save_dir, 'test_ys_service.pkl'), 
+        #                                          os.path.join(save_dir, 'topology.pkl')), 
+        #                                          RandomForestClassifier(random_state=0),
+        #                                          'instance')
         # RandomForestClassifier(random_state=0)
         # GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)
         # AdaBoostClassifier(n_estimators=100, random_state=0)
-        print('anomaly type')
-        self.test_cls(model_ta, UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
-                                                 os.path.join(save_dir, 'train_ys_anomaly_type.pkl'),
-                                                 os.path.join(save_dir, 'topology.pkl'),
-                                                 aug=self.config['aug'],
-                                                 aug_size=self.config['aug_size'],
-                                                 shuffle=True), UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'), 
-                                                 os.path.join(save_dir, 'test_ys_anomaly_type.pkl'), 
-                                                 os.path.join(save_dir, 'topology.pkl')), 
-                                                 RandomForestClassifier(random_state=0),
-                                                 'anomaly_type')
+        # print('anomaly type')
+        # self.test_cls(model_ta, UnircaDataset(os.path.join(save_dir, 'train_Xs.pkl'),
+        #                                          os.path.join(save_dir, 'train_ys_anomaly_type.pkl'),
+        #                                          os.path.join(save_dir, 'topology.pkl'),
+        #                                          aug=self.config['aug'],
+        #                                          aug_size=self.config['aug_size'],
+        #                                          shuffle=True), UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'), 
+        #                                          os.path.join(save_dir, 'test_ys_anomaly_type.pkl'), 
+        #                                          os.path.join(save_dir, 'topology.pkl')), 
+        #                                          RandomForestClassifier(random_state=0),
+        #                                          'anomaly_type')
         print('[Multi_task learning v0]')
 #         t_output, t_labels = self.test(trans_model,
 #                                        UnircaDataset(os.path.join(save_dir, 'test_Xs.pkl'),

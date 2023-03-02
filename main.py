@@ -14,11 +14,11 @@ if __name__ == '__main__':
     # print('[parse]')
     # metric_trace_log_parse.run_parse(deal_config(config, 'parse'), labels)
 
-    # print('[fasttext]')
-    # fasttext_with_DA.run_fasttext(deal_config(config, 'fasttext'), labels)
+    print('[fasttext]')
+    fasttext_with_DA.run_fasttext(deal_config(config, 'fasttext'), labels)
 
-    # print('[sentence_embedding]')
-    # sententce_embedding.run_sentence_embedding(deal_config(config, 'sentence_embedding'))
+    print('[sentence_embedding]')
+    sententce_embedding.run_sentence_embedding(deal_config(config, 'sentence_embedding'))
 
     print('[dgl]')
     lab_id = 9 # 实验唯一编号

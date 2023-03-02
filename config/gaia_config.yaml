@@ -39,11 +39,11 @@ sentence_embedding:
 he_dgl:
   nodes: 'dbservice1 dbservice2 logservice1 logservice2 mobservice1 mobservice2 redisservice1 redisservice2 webservice1 webservice2'
   dataset: 'gaia'
-  heterogeneous: True 
+  heterogeneous: False 
   data_dir: ''
   save_dir: 'dgl/stratification_10'
   Xs: 'sentence_embedding.pkl'
-  run_table: 'demo_train160.csv'
+  run_table: 'gaia_resplit.csv' # 'demo_train160.csv'
   aug: False
   aug_size: 0
   N_S: 5 

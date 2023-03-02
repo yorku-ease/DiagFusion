@@ -24,9 +24,9 @@ def metric_trace_log_parse(trace, metric, logs, labels, save_path, nodes):
                 count += 1
 
     # service_name = sorted(list(set(labels['service'])))
-    service_name = np.load('/home/jinpengxiang/jupyterfiles/zhangbicheng/unirca/data/21aiops/nodes.pkl', allow_pickle=True) # 仅针对21数据集
-#     service_name = nodes.split()
-    anomaly_service = list(labels['service'])
+#     service_name = np.load('/home/u2120210568/jupyterfiles/zhangbicheng/unirca/data/21aiops/nodes.pkl', allow_pickle=True) # 仅针对21数据集
+    service_name = nodes.split()
+    anomaly_service = list(labels['instance'])
     anomaly_type = list(labels['anomaly_type'])
 
 #     demo_metric = {x: {} for x in metric.keys()}
