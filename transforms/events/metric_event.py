@@ -20,7 +20,6 @@ def ts_to_date(timestamp):
 
 def time_to_ts(ctime):
     try:
-        print(ctime)
         timeArray = time.strptime(ctime, '%Y-%m-%d %H:%M:%S,%f')
     except:
         timeArray = time.strptime(ctime, '%Y-%m-%d')
@@ -125,6 +124,6 @@ if __name__ == '__main__':
         # 获取metric_event
         metric_event = MetricEvent(labels, metric_info_path, metric_data_dir, dataset)
         metric_event.get_metric_events()
-        save_path = '/content/DiagFusion/data/gaia/demo/demo_1100/anomalies/metrics.csv'
+        save_path = '/content/DiagFusion/data/gaia/demo/demo_1100/anomalies/metrics.json'
         metric_event.save_res(save_path)
     
