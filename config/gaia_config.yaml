@@ -2,6 +2,7 @@ dataset: 'gaia'
 base_path: '.'
 demo_path: 'data/gaia/demo'
 label: 'demo_1100'
+minute: 6000
 
 parse:
   nodes: 'dbservice1 dbservice2 logservice1 logservice2 mobservice1 mobservice2 redisservice1 redisservice2 webservice1 webservice2'

@@ -9,6 +9,7 @@ import pytz
 import time
 from tqdm import tqdm
 import public_function as pf
+import yaml
 
 tz = pytz.timezone('Asia/Shanghai')
 def ts_to_date(timestamp):
@@ -19,7 +20,8 @@ def ts_to_date(timestamp):
 
 def time_to_ts(ctime):
     try:
-        timeArray = time.strptime(ctime, '%Y-%m-%d %H:%M:%S.%f')
+        print(ctime)
+        timeArray = time.strptime(ctime, '%Y-%m-%d %H:%M:%S,%f')
     except:
         timeArray = time.strptime(ctime, '%Y-%m-%d')
     return int(time.mktime(timeArray))*1000
@@ -113,21 +115,16 @@ metric_event.save_res('./20aiops_metric.json')
 """
 
 if __name__ == '__main__':
-    config = pf.get_config()
-    project_root_dir = os.path.abspath(os.path.join(os.path.split(os.path.realpath(__file__))[0],
-                                                    '../..'))
-    label_path = os.path.abspath(os.path.join(project_root_dir, 
-                                              config['base_path'], 
-                                              config['demo_path'],
-                                              config['label'], 'demo.csv'))
-    labels = pd.read_csv(label_path)
-    metric_info_path = config['metric_info_path']
-    metric_data_dir = config['metric_data_dir']
-    dataset = config['dataset']
-    # 获取metric_event
-    metric_event = MetricEvent(labels, metric_info_path, metric_data_dir, dataset)
-    metric_event.get_metric_events()
-    save_path = os.path.abspath(os.path.join(project_root_dir, 
-                               pf.deal_config(config, 'parse')['metric_path']))
-    metric_event.save_res(save_path)
+    with open('/content/DiagFusion/config/gaia_config.yaml', 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+        label_path = '/content/DiagFusion/data/gaia/demo/demo_1100/labels.csv'
+        labels = pd.read_csv(label_path)
+        metric_info_path = '/content/DiagFusion/data/gaia/demo/demo_1100/metric_names.csv'
+        metric_data_dir = '/content/GAIA-DataSet-main/MicroSS/metric/metric'
+        dataset = config['dataset']
+        # 获取metric_event
+        metric_event = MetricEvent(labels, metric_info_path, metric_data_dir, dataset)
+        metric_event.get_metric_events()
+        save_path = '/content/DiagFusion/data/gaia/demo/demo_1100/anomalies/metrics.csv'
+        metric_event.save_res(save_path)
     
