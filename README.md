@@ -27,3 +27,5 @@ python main.py --config gaia_config.yaml
 * `win_threshole`: The thresh for ending training early. (default: 0.0001)
 * `lr`: The learning rate. (default: 0.001)
 
+test
+test
