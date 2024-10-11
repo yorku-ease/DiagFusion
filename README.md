@@ -30,3 +30,4 @@ python main.py --config gaia_config.yaml
 test
 test
 test
+test
