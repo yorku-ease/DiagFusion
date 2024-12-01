@@ -1,0 +1,9 @@
+venv/
+GAIA-DataSet-main
+logs_faults
+mid
+data/gaia/demo/demo_1100/processed_traces
+**/__pycache__/*
+.DS_STORE
+temp.json
+.python-version
